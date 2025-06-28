@@ -82,6 +82,10 @@ local defaults = {
             },
           },
         },
+        ["planning"] = {
+          callback = "strategies.chat.agents.tools.planning",
+          description = "Call an LLM to create a plan for the ongoing task.",
+        },
         ["cmd_runner"] = {
           callback = "strategies.chat.agents.tools.cmd_runner",
           description = "Run shell commands initiated by the LLM",
