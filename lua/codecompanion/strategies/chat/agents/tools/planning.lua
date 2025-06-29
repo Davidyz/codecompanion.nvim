@@ -37,7 +37,8 @@ A clear and concise restatement of the coding task.
 A brief overview of the main phases or components of the solution.
 
 ## Detailed Steps
-Numbered, specific, and actionable steps to implement the solution. Break down complex steps and consider common programming practices.
+Numbered, specific, and actionable steps to implement the solution. 
+Break down complex steps and consider common programming practices.
 
 ## Tools to Consider
 Suggest relevant CodeCompanion tools that could be useful at various stages of the development. Explain briefly why each tool is relevant to a specific step or phase.
@@ -53,6 +54,9 @@ If any existing code, documentation, or search results were provided, explain ho
         table.concat(
           vim
             .iter(agent.chat.refs)
+            :filter(function(item)
+              return item.name and item.name == "tool"
+            end)
             :map(function(item)
               return vim.inspect(item)
             end)
@@ -92,7 +96,7 @@ If any existing code, documentation, or search results were provided, explain ho
           end
           return cb({ status = "error", data = res.output.content })
         end
-        return cb({ status = "error", data = "Empty response!" })
+        return cb({ status = "error", data = "Failed to retrieve a plan. Go ahead with your own plan." })
       end,
     })
   end,
