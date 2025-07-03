@@ -112,21 +112,13 @@ M.schema = {
   type = "function",
   ["function"] = {
     name = "planning",
-    description = "Generates a detailed, step-by-step coding plan based on a given task and optional code context. This tool invokes an LLM to act as an expert software architect and project planner, providing a structured and actionable plan. This tool should be called right after a user response, if it's a high-level requirement that isn't trivial to implement. After calling this tool, you may carry out with the task.",
+    description = "Generates a detailed, step-by-step coding plan based on a given task and optional code context. This tool invokes an LLM to act as an expert software architect and project planner, providing a structured and actionable plan. This tool should be called right after a user response and **BEFORE ANY OTHER TOOL*. After calling this tool, you may carry out with the task.",
     parameters = {
       type = "object",
       properties = {
         task = {
           type = "string",
-          description = [[
-The specific coding task or problem for which to generate a plan.
-
-The generated plan will follow this structure:
-## Problem Statement: A clear and concise restatement of the coding task.
-## High-Level Plan: A brief overview of the main phases or components of the solution.
-## Detailed Steps: Numbered, specific, and actionable steps to implement the solution. Break down complex steps and consider common programming practices.
-## Tools to Consider: Suggest relevant CodeCompanion tools that could be useful at various stages (e.g., `web_search` for research, `file_search` for locating files, `vectorcode_query` for understanding existing code, `create_file` for new files, `modify_file` for changes, `generate_test` for testing, `run_code` for execution). Explain briefly why each tool is relevant to a specific step or phase.
-]],
+          description = [[The specific coding task or problem for which to generate a plan.]],
         },
         context = {
           type = "string",
