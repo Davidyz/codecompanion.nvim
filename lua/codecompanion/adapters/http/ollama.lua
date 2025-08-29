@@ -4,37 +4,40 @@ local log = require("codecompanion.utils.log")
 local openai = require("codecompanion.adapters.http.openai")
 local utils = require("codecompanion.utils.adapters")
 
-local _cached_adapter
+---table of name:adapter
+---@type table<string, CodeCompanion.HTTPAdapter>
+local _adapter_cache = {}
 
 ---Get a list of available Ollama models
----@params self CodeCompanion.HTTPAdapter
----@params opts? table
+---@param self CodeCompanion.HTTPAdapter
+---@param opts? table
 ---@return table
 local function get_models(self, opts)
   -- Prevent the adapter from being resolved multiple times due to `get_models`
   -- having both `default` and `choices` functions
-  if not _cached_adapter then
-    local adapter = require("codecompanion.adapters").resolve(self)
+  if _adapter_cache[self.name] == nil then
+    local adapter = require("codecompanion.adapters.http").resolve(self)
     if not adapter then
       log:error("Could not resolve Ollama adapter in the `get_models` function")
       return {}
     end
-    _cached_adapter = adapter
+    _adapter_cache[self.name] = vim.deepcopy(adapter)
   end
+  local _adapter = vim.deepcopy(_adapter_cache[self.name])
 
-  utils.get_env_vars(_cached_adapter)
-  local url = _cached_adapter.env_replaced.url
+  _adapter = utils.get_env_vars(_adapter) --[[@as CodeCompanion.HTTPAdapter]]
+  local url = _adapter.env_replaced.url
 
   local headers = {
     ["content-type"] = "application/json",
   }
 
   local auth_header = "Bearer "
-  if _cached_adapter.env_replaced.authorization then
-    auth_header = _cached_adapter.env_replaced.authorization .. " "
+  if _adapter.env_replaced.authorization then
+    auth_header = _adapter.env_replaced.authorization .. " "
   end
-  if _cached_adapter.env_replaced.api_key then
-    headers["Authorization"] = auth_header .. _cached_adapter.env_replaced.api_key
+  if _adapter.env_replaced.api_key then
+    headers["Authorization"] = auth_header .. _adapter.env_replaced.api_key
   end
 
   local ok, response = pcall(function()
@@ -92,23 +95,35 @@ local function get_models(self, opts)
   return models
 end
 
+---@type table<string, table<string, boolean>>
+local thinking_capability_cache = {}
+
 ---Return `true` if the model of the adapter supports thinking.
 ---@param self CodeCompanion.HTTPAdapter
----@param model? string|function
+---@param model? string|function|{name:string, opts:table}
 ---@return boolean
 local function check_thinking_capability(self, model)
-  model = model or self.schema.model.default
+  model = model or (not vim.tbl_isempty(self.model) and self.model or self.schema.model.default)
   if type(model) == "function" then
     model = model(self)
+  elseif type(model) == "table" then
+    model = model.name
   end
-  local choices = self.schema.model.choices
-  if type(choices) == "function" then
-    choices = choices(self)
+  local url = utils.get_env_vars(self).env_replaced.url
+  thinking_capability_cache[url] = thinking_capability_cache[url] or {}
+  if thinking_capability_cache[url][model] == nil then
+    local choices = self.schema.model.choices
+    if type(choices) == "function" then
+      choices = choices(self)
+    end
+
+    if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
+      thinking_capability_cache[url][model] = true
+    else
+      thinking_capability_cache[url][model] = false
+    end
   end
-  if choices and choices[model] and choices[model].opts and choices[model].opts.can_reason then
-    return true
-  end
-  return false
+  return thinking_capability_cache[url][model]
 end
 
 ---@class CodeCompanion.HTTPAdapter.Ollama: CodeCompanion.HTTPAdapter
